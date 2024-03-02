@@ -177,10 +177,12 @@ def process_incidents_and_download(csv_file, output_folder, max_downloads=100, d
                 pil_image = Image.fromarray(image)
                 pil_image.save(fn)
 
+                print(f"Downloaded image for row: {row['ID']}")
+
                 downloads += 1
 
             except ZeroDivisionError:#ValueError:
-                print(f"Error parsing date for row: {row}")
+                print(f"Error parsing date for row: {row['ID']}")
 
 
 if __name__ == '__main__':
