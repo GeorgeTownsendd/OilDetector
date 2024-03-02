@@ -11,9 +11,9 @@ from email.mime.multipart import MIMEMultipart
 # Constants
 image_size_width = 255
 image_size_height = 255
-sender_email = 'seasentry@yahoo.com'
+sender_email = 'sea.sentry.com@gmail.com'
 sender_password = os.environ.get('PASSWORD') 
-model = load_model('final_model.h5')
+# model = load_model('final_model.h5')
 
 # Create a Flask app
 app = Flask(__name__)
@@ -37,8 +37,8 @@ def predict_oil_spill(image_url, lat, lon, open_date_str):
     # Run the model on the image and return the result.
     image = cv2.imread(image_url)
     image = cv2.resize(image, (image_size_width, image_size_height))
-    if model.predict(image) == 1:
-        locations_of_oil_spills.append((lat, lon, open_date_str))
+    # if model.predict(image) == 1:
+    #     locations_of_oil_spills.append((lat, lon, open_date_str))
     
 
 # Notify investor of oil any oil spills, using email client.
@@ -51,11 +51,11 @@ def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill
     message["Subject"] = subject
 
     # Add body to email
-    body = "This is a test email sent from Python."
+    body = message
     message.attach(MIMEText(body, "plain"))
 
     # Connect to the SMTP server
-    server = smtplib.SMTP("smtp.mail.yahoo.com", 587)
+    server = smtplib.SMTP("smtp.gmail.com", 587)
     server.starttls()
 
     # Login to the email account
@@ -72,3 +72,6 @@ def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill
 def homepage_func():
     # Return the html file with the 
     return render_template('index.html')
+
+
+send_email()
