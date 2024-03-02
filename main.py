@@ -27,7 +27,10 @@ def download_image(lat, lon, credentials_path='data/credentials.txt', instance_i
     client_id, client_secret = read_client_credentials(credentials_path)
     oauth = create_oauth_session(client_id, client_secret)
 
-    wms_url = f"https://services-uswest2.sentinel-hub.com/ogc/wms/{instance_id}?service=WMS&request=GetMap&layers={layer_name}&styles=&format={image_format}&transparent=false&version=1.1.1&width={resolution[0]}&height={resolution[1]}&srs=EPSG:4326&bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}&time=2023-01-01/2023-01-31"
+    start_time = '2023-01-01'
+    end_time = '2023-01-31'
+
+    wms_url = f"https://services-uswest2.sentinel-hub.com/ogc/wms/{instance_id}?service=WMS&request=GetMap&layers={layer_name}&styles=&format={image_format}&transparent=false&version=1.1.1&width={resolution[0]}&height={resolution[1]}&srs=EPSG:4326&bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}&time={start_time}/{end_time}"
     response = oauth.get(wms_url)
 
     if response.status_code == 200:
