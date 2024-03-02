@@ -6,6 +6,8 @@ import os
 import datetime
 import io
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 from PIL import Image
 import geopandas as gpd
@@ -95,8 +97,8 @@ def create_oauth_session(client_id, client_secret):
 def download_image(
     lat,
     lon,
-    start_date,
-    end_date,
+    start_date='default',
+    end_date='default',
     credentials_path='data/credentials.txt',
     instance_id='7155b573-d6a9-4712-be56-b4b3e34c5706',
     layer_name='NDVI',
@@ -126,10 +128,16 @@ def download_image(
     client_id, client_secret = read_client_credentials(credentials_path)
     oauth = create_oauth_session(client_id, client_secret)
 
-    start_time = start_date.strftime('%Y-%m-%d')
-    end_time = end_date.strftime('%Y-%m-%d')
+    if start_date == 'default':
+        start_time = datetime.datetime.now()
+    else:
+        start_time = start_date.strftime('%Y-%m-%d')
+    if end_date == 'default':
+        end_time = datetime.datetime.now() - datetime.timedelta(weeks=1)
+    else:
+        end_time = end_date.strftime('%Y-%m-%d')
 
-    wms_url = f"https://services-uswest2.sentinel-hub.com/ogc/wms/{instance_id}?service=WMS&request=GetMap&layers={layer_name}&styles=&format={image_format}&transparent=false&version=1.1.1&width={resolution[0]}&height={resolution[1]}&srs=EPSG:4326&bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}&time={start_time}/{end_time}"
+    wms_url = f"https://creodias.sentinel-hub.com/ogc/wms/{instance_id}?service=WMS&request=GetMap&layers={layer_name}&styles=&format={image_format}&transparent=false&version=1.1.1&width={resolution[0]}&height={resolution[1]}&srs=EPSG:4326&bbox={bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]}&time={start_time}/{end_time}"
 
     response = oauth.get(wms_url)
 
@@ -142,10 +150,37 @@ def download_image(
         raise Exception(f"Failed to download image. Status code: {response.status_code}, Response content: {response.text}")
 
 
+def get_row_details(row_id, csv_file='data/inputs/filtered_incidents.csv'):
+    """Retrieve details for a given row ID from the CSV file."""
+    with open(csv_file, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if int(row['id']) == int(row_id):  # Assuming the row ID column is named 'id'
+                return row
+    return None
 
 
-def process_incidents_and_download(csv_file, output_folder, max_downloads=100, dataset_name='default', layer_name='TRUE-COLOR'):
-    """Processes incidents from a CSV file and downloads images."""
+def download_image_for_row_id(row_id, layer_name='TRUE-COLOR', csv_file='data/inputs/filtered_incidents.csv'):
+    """Downloads an image for a given row ID and saves it to the specified path."""
+    row = get_row_details(row_id, csv_file=csv_file)
+    if row is None:
+        print(f"Row ID {row_id} not found.")
+        return
+
+    lat = float(row['lat'])
+    lon = float(row['lon'])
+    open_date_str = row['open_date']
+    open_date = datetime.datetime.strptime(open_date_str, '%Y/%m/%d').date()
+    start_of_month = open_date.replace(day=1)
+    end_of_month = (start_of_month + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
+    image_array = download_image(lat, lon, start_of_month, end_of_month, layer_name=layer_name)
+
+    return image_array
+
+
+def process_incidents_and_download(csv_file, output_folder, max_downloads=100, dataset_name='default',
+                                   layer_name='TRUE-COLOR'):
+    """Processes incidents from a CSV file and downloads images for each row based on row ID."""
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)  # Create output folder if it doesn't exist
@@ -165,31 +200,57 @@ def process_incidents_and_download(csv_file, output_folder, max_downloads=100, d
             try:
                 open_date = datetime.datetime.strptime(open_date_str, '%Y/%m/%d').date()
                 start_of_month = open_date.replace(day=1)
-                end_of_month = (start_of_month + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
+                end_of_month = (start_of_month + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(
+                    days=1)
 
-                folder_path = f'data/datasets/{dataset_name}/'
+                folder_path = os.path.join(output_folder, f'{dataset_name}/')
                 if not os.path.exists(folder_path):
-                    os.mkdir(folder_path)
+                    os.makedirs(folder_path)
 
-                fn = folder_path + f'id - {row["id"]} - v1.jpg'
-                image = download_image(lat, lon, start_date=start_of_month, end_date=end_of_month, layer_name=layer_name)
+                output_path = os.path.join(folder_path, f'id - {row["id"]} - v1.jpg')
+                image = download_image(lat, lon, start_of_month, end_of_month, layer_name=layer_name)
+                im = Image.fromarray(image)
+                im.save(output_path)
 
-                pil_image = Image.fromarray(image)
-                pil_image.save(fn)
-
-                print(f"Downloaded image for row: {row['ID']}")
-
+                print(f"Downloaded image for row ID: {row['id']}")
                 downloads += 1
 
-            except ZeroDivisionError:#ValueError:
-                print(f"Error parsing date for row: {row['ID']}")
+            except ValueError:
+                print(f"Error parsing date for row ID: {row['id']}")
+
+
+
+def test():
+    csv_file = 'data/inputs/filtered_incidents.csv'
+    output_folder = 'downloaded_images'
+    layer_names = ['OILSPILL'] * 4#['TRUE-COLOR', 'NDVI', 'NDWI', 'OILSPILL']
+
+    example_row_id = 10437
+
+    # Set up the matplotlib figure and axes for a 2x2 grid of plots
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig.suptitle(f'Different Imagery Sets for Row ID: {example_row_id}')
+
+    # Flatten the Axes array for easy iterating
+    axs = axs.flatten()
+    images = []
+
+    for i, layer_name in enumerate(layer_names):
+        image_array = download_image_for_row_id(example_row_id, layer_name=layer_name)
+
+        # Plot the image in the corresponding subplot
+        ax = axs[i]
+        ax.imshow(image_array)
+        ax.set_title(layer_name)
+        ax.axis('off')  # Hide the axis
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust subplots to fit into the figure area.
+    plt.show()
 
 
 if __name__ == '__main__':
-    #create_ocean_dataset(100, 'set4-baseline')
     csv_file = 'data/inputs/filtered_incidents.csv'
-    output_folder = 'downloaded_images'
+    output_folder = 'data/datasets/test'
 
-    layer_names = ['TRUE-COLOR', 'NDVI', 'NDWI', 'THERMAL']
-
-    process_incidents_and_download(csv_file, output_folder, dataset_name='ndvi', max_downloads=10, layer_name=layer_names[3])
+    process_incidents_and_download(csv_file, output_folder, dataset_name='ndvi', max_downloads=10,
+                                   layer_name='TRUE-COLOR')
