@@ -4,7 +4,10 @@ import os
 import csv
 import os
 import datetime
+import io
 
+import numpy as np
+from PIL import Image
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 import random
@@ -94,7 +97,6 @@ def download_image(
     lon,
     start_date,
     end_date,
-    output_filename='downloaded_image.jpg',  # Change from image_path
     credentials_path='data/credentials.txt',
     instance_id='7155b573-d6a9-4712-be56-b4b3e34c5706',
     layer_name='NDVI',
@@ -102,20 +104,22 @@ def download_image(
     resolution=(512, 512),
     buffer=0.1,
 ):
-    """Downloads a Sentinel image for the given coordinates and time range.
+    """Downloads a Sentinel image for the given coordinates and time range and returns it as a NumPy array.
 
     Args:
         lat (float): Latitude of the image center.
         lon (float): Longitude of the image center.
         start_date (datetime.date): Start date of the desired time range.
         end_date (datetime.date): End date of the desired time range.
-        output_filename (str, optional): Name of the output image file. Defaults to 'downloaded_image.jpg'.
         credentials_path (str, optional): Path to the credentials file. Defaults to 'data/credentials.txt'.
         instance_id (str, optional): Sentinel Hub instance ID.
         layer_name (str, optional): The layer to download.
         image_format (str, optional): Format of the output image.
         resolution (tuple, optional): Image resolution in pixels (width, height).
         buffer (float, optional): Buffer size to add around the center coordinates.
+
+    Returns:
+        np.array: The image as a NumPy array.
     """
 
     bbox = (lon - buffer, lat - buffer, lon + buffer, lat + buffer)
@@ -130,16 +134,17 @@ def download_image(
     response = oauth.get(wms_url)
 
     if response.status_code == 200:
-        with open(output_filename, 'wb') as f:
-            f.write(response.content)
-        print(f"Image downloaded successfully to: {output_filename}")
+        image_data = io.BytesIO(response.content)
+        image = Image.open(image_data)
+        image_array = np.array(image)
+        return image_array
     else:
-        print(f"Failed to download image. Status code: {response.status_code}")
-        print(f"Request URL: {wms_url}")
-        print(f"Response content: {response.text}")
+        raise Exception(f"Failed to download image. Status code: {response.status_code}, Response content: {response.text}")
 
 
-def process_incidents_and_download(csv_file, output_folder, max_downloads=100, dataset_name='default'):
+
+
+def process_incidents_and_download(csv_file, output_folder, max_downloads=100, dataset_name='default', layer_name='TRUE-COLOR'):
     """Processes incidents from a CSV file and downloads images."""
 
     if not os.path.exists(output_folder):
@@ -162,7 +167,16 @@ def process_incidents_and_download(csv_file, output_folder, max_downloads=100, d
                 start_of_month = open_date.replace(day=1)
                 end_of_month = (start_of_month + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
 
-                download_image(lat, lon, start_date=start_of_month, end_date=end_of_month, output_filename=f"data/datasets/{dataset_name}/id-{row['id']}-v1.jpg")
+                folder_path = f'data/datasets/{dataset_name}/'
+                if not os.path.exists(folder_path):
+                    os.mkdir(folder_path)
+
+                fn = folder_path + f'id - {row["id"]} - v1.jpg'
+                image = download_image(lat, lon, start_date=start_of_month, end_date=end_of_month, layer_name=layer_name)
+
+                pil_image = Image.fromarray(image)
+                pil_image.save(fn)
+
                 downloads += 1
 
             except ZeroDivisionError:#ValueError:
@@ -173,4 +187,7 @@ if __name__ == '__main__':
     #create_ocean_dataset(100, 'set4-baseline')
     csv_file = 'data/inputs/filtered_incidents.csv'
     output_folder = 'downloaded_images'
-    process_incidents_and_download(csv_file, output_folder, dataset_name='ndvi', max_downloads=1)
+
+    layer_names = ['TRUE-COLOR', 'NDVI', 'NDWI', 'THERMAL']
+
+    process_incidents_and_download(csv_file, output_folder, dataset_name='ndvi', max_downloads=10, layer_name=layer_names[3])
