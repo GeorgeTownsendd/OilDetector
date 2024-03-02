@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <script src="https://www.webglearth.com/v2/api.js"></script>
+    <script>
+      function initialize() {
+        var earth = new WE.map('earth_div');
+        earth.setView([46.8011, 8.2266], 3);
+        WE.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>'}).addTo(earth);
+
+        // Start a simple rotation animation
+        var before = null;
+        requestAnimationFrame(function animate(now) {
+            var c = earth.getPosition();
+            var elapsed = before? now - before: 0;
+            before = now;
+            earth.setCenter([c[0], c[1] + 0.1*(elapsed/30)]);
+            requestAnimationFrame(animate);
+        });
+
+        var marker = WE.marker([11.17, -60]).addTo(earth);
+        marker.bindPopup("<b>Oil Spill in Tobago's southern coast</b><br>Wednesday 14 February 2024 15:13 GMT<br /><span style='font-size:10px;color:#999'>The spill occurred on the southern coast of Tobago Island and has blackened about 15km of coastline. The cause of the spill is unknown and the cleanup efforts are ongoing. The government of Trinidad and Tobago has vowed to spare no expense to clean up the beaches.</span>", {maxWidth: 150, closeButton: true}).openPopup();
+
+        var marker2 = WE.marker([30.058056, 31.228889]).addTo(earth);
+        marker2.bindPopup("<b>Cairo</b><br>Thursday 15 February 2024 08:24 GMT", {maxWidth: 120, closeButton: false});
+
+        var markerCustom = WE.marker([50, -9], '/img/logo-webglearth-white-100.png', 100, 24).addTo(earth);
+
+        earth.setView([51.505, 0], 6);
+      }
+    </script>
+    <style>
+      html, body {
+        padding: 0;
+        margin: 0;
+        background-color: black;
+        overflow: hidden;
+      }
+
+      #earth_div {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        position: absolute !important;
+      }
+
+      #earth_div::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: -1;
+        background: url('bluestars.jpg') center center / cover no-repeat;
+      }
+    </style>
+    <title>WebGL Earth API: Markers and pop-up on a globe example with sky background</title>
+    <meta name="description" content="Add markers with a pop-up to an open-source 3D globe and display it on a web or mobile devices.">
+  </head>
+  <body onload="initialize()">
+    <div id="earth_div"></div>
+  </body>
+</html>
