@@ -5,6 +5,70 @@ import csv
 import os
 import datetime
 
+import geopandas as gpd
+from shapely.geometry import Point, Polygon
+import random
+
+def load_ocean_outlines(filepath):
+    """Loads ocean outlines from a GeoPackage file."""
+    gdf = gpd.read_file(filepath, layer='goas_v01')
+    return gdf
+
+
+def generate_random_point_in_ocean(gdf):
+    """Generates a random point within the ocean outlines."""
+    valid_point = False
+    while not valid_point:
+        # Generate a random longitude and latitude
+        lon = random.uniform(-180, 180)
+        lat = random.uniform(-70, 70)
+        point = Point(lon, lat)
+        # Check if the point is within any of the ocean polygons
+        if any(gdf.contains(point)):
+            valid_point = True
+    print(lon, lat)
+    return lon, lat
+
+
+
+def create_ocean_dataset(n, output_folder, gdf_filename='data/inputs/oceans.gpkg'):
+    """Creates a dataset of n random ocean points, downloads Sentinel images,
+    and records the points in a CSV file.
+    """
+
+    if not output_folder.startswith('data/'):
+        output_folder = 'data/datasets/' + output_folder
+
+    gdf = gpd.read_file(gdf_filename, layer='oceans')
+
+    # Create the output folder if it does not exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Define the path for the CSV file to record the points
+    csv_file_path = os.path.join(output_folder, 'ocean_points.csv')
+
+    with open(csv_file_path, 'w', newline='') as csvfile:
+        fieldnames = ['Number', 'Latitude', 'Longitude']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+
+        for i in range(n):
+            lon, lat = generate_random_point_in_ocean(gdf)
+            # Record the generated point in the CSV file
+            writer.writerow({'Number': i + 1, 'Latitude': lat, 'Longitude': lon})
+
+            # Define your time range and other parameters as needed
+            start_date = datetime.date(2023, 1, 1)  # Example start date
+            end_date = datetime.date(2023, 1, 31)  # Example end date
+            output_filename = os.path.join(output_folder, f"ocean_point_{i + 1}.jpg")
+            # Download the image for the generated point
+            download_image(lat, lon, start_date, end_date, output_filename=output_filename)
+            print(f"Downloaded {i + 1}/{n} images.")
+
+    print(f"Completed downloading images and recording points in {csv_file_path}.")
+
 
 def read_client_credentials(filepath):
     """Reads client ID and secret from a specified file."""
@@ -24,7 +88,6 @@ def create_oauth_session(client_id, client_secret):
     return oauth
 
 
-import datetime
 
 def download_image(
     lat,
@@ -34,7 +97,7 @@ def download_image(
     output_filename='downloaded_image.jpg',  # Change from image_path
     credentials_path='data/credentials.txt',
     instance_id='7155b573-d6a9-4712-be56-b4b3e34c5706',
-    layer_name='TRUE-COLOR',
+    layer_name='NDVI',
     image_format='image/jpeg',
     resolution=(512, 512),
     buffer=0.1,
@@ -76,7 +139,7 @@ def download_image(
         print(f"Response content: {response.text}")
 
 
-def process_incidents_and_download(csv_file, output_folder, max_downloads=100):
+def process_incidents_and_download(csv_file, output_folder, max_downloads=100, dataset_name='default'):
     """Processes incidents from a CSV file and downloads images."""
 
     if not os.path.exists(output_folder):
@@ -95,17 +158,19 @@ def process_incidents_and_download(csv_file, output_folder, max_downloads=100):
             lon = float(row['lon'])
 
             try:
-                open_date = datetime.datetime.strptime(open_date_str, '%Y-%m-%d').date()
+                open_date = datetime.datetime.strptime(open_date_str, '%Y/%m/%d').date()
                 start_of_month = open_date.replace(day=1)
                 end_of_month = (start_of_month + datetime.timedelta(days=32)).replace(day=1) - datetime.timedelta(days=1)
 
-                download_image(lat, lon, start_date=start_of_month, end_date=end_of_month, output_filename=f"data/set2/id-{row['id']}-v1.jpg")
+                download_image(lat, lon, start_date=start_of_month, end_date=end_of_month, output_filename=f"data/datasets/{dataset_name}/id-{row['id']}-v1.jpg")
                 downloads += 1
 
-            except ValueError:
+            except ZeroDivisionError:#ValueError:
                 print(f"Error parsing date for row: {row}")
 
+
 if __name__ == '__main__':
-    csv_file = 'data/filtered_incidents.csv'
+    #create_ocean_dataset(100, 'set4-baseline')
+    csv_file = 'data/inputs/filtered_incidents.csv'
     output_folder = 'downloaded_images'
-    process_incidents_and_download(csv_file, output_folder)
+    process_incidents_and_download(csv_file, output_folder, dataset_name='ndvi', max_downloads=1)
