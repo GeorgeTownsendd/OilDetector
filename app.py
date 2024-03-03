@@ -9,6 +9,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+
+import sys
+
+sys.path.append(os.path.abspath("/Users/tomsmail/Documents/Hackathons/OilDetector.nosync/FinancialData"))
+from ApplyLeakageToPrice import *
+
 # Constants
 image_size_width = 255
 image_size_height = 255
@@ -16,12 +22,13 @@ sender_email = 'sea.sentry.com@gmail.com'
 sender_password = os.environ.get('PASSWORD') 
 
 
+
 point_off_coast_of_scotland_1 = (57, -1)
 point_off_coast_of_scotland_2 = (56, -2)
 
-TESTING_NO_EMAIL = False
+TESTING_NO_EMAIL = True
 TESTING_NO_MODEL = True
-TESTING_NO_PRICE_PREDICTION = True
+TESTING_NO_PRICE_PREDICTION = False
 
 if not TESTING_NO_MODEL:
     model = load_model('best_model.h5')
@@ -56,7 +63,7 @@ def predict_oil_spill(image_url, lat, lon):
     return bool_ret
 
 # Notify investor of oil any oil spills, using email client.
-def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill Alert", message = "There is an oil spill. You should buy now, before the price spikes and sell when the oil price is high."):
+def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill Alert", body = "There is an oil spill. You should buy now, before the price spikes and sell when the oil price is high."):
     # Send an email to the investor if there are any oil spills.
     # Create a multipart message
     message = MIMEMultipart()
@@ -65,7 +72,6 @@ def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill
     message["Subject"] = subject
 
     # Add body to email
-    body = message
     message.attach(MIMEText(body, "plain"))
 
     # Connect to the SMTP server
@@ -92,7 +98,7 @@ def homepage_func():
 
         # make requests to the sentinel API to get the image
         if TESTING_NO_MODEL:
-            is_spill = False
+            is_spill = True
         else:
             image = "GET_IMAGE_FROM_SENTINEL_API"
             is_spill = predict_oil_spill(image, lat, lon, "2021-01-01")
@@ -104,16 +110,15 @@ def homepage_func():
         f.write(json_data)
     
 
-    if is_spill:
-        if TESTING_NO_PRICE_PREDICTION:
-            sell_price = 100
-        else:
-            sell_price = 100 
-            # max(heston_price(true))
-        if TESTING_NO_EMAIL:
-            print(f"There is an oil spill at {lat}, {lon} you should buy now, before the price spikes and sell when the oil price is {sell_price}.")
-        else:
-            send_email(message=f"There is an oil spill at {lat}, {lon} you should buy now, before the price spikes and sell when the oil price is {sell_price}.")
+    if TESTING_NO_PRICE_PREDICTION:
+        sell_date = "2024-03-06 00:00:00"
+    else:
+        sell_date = GenerateData("")
+    if TESTING_NO_EMAIL:
+        print(f"There is an oil spill at {11}, {-60} you should buy now, before the price spikes and sell on {sell_date}.")
+    else:
+        print(f"There is an oil spill at {11}, {-60} you should buy now, before the price spikes and sell on {sell_date}.")
+        send_email(body=f"There is an oil spill at {11}, {-60} you should buy now, before the price spikes and sell on {sell_date}.")
     return render_template('index.html')
 
 

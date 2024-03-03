@@ -40,10 +40,10 @@ def GenerateData(date):
 
     SimulatedData = LeakageToPrice.generate_heston_paths(IncidentPointValue, T, r, optimal_kappa, optimal_theta, optimal_v_0, optimal_Rho, optimal_xi, Days//2, NPaths)
 
-    plt.plot(observed_data.iloc[0:index+1,:]['Date'],observed_data.iloc[0:index+1,:]['Value'])
-    plt.scatter(IncidentPointDate, IncidentPointValue, color='red')
-    plt.plot(observed_data.iloc[index:]['Date'],SimulatedData[0])
-    plt.show()
+    # plt.plot(observed_data.iloc[0:index+1,:]['Date'],observed_data.iloc[0:index+1,:]['Value'])
+    # plt.scatter(IncidentPointDate, IncidentPointValue, color='red')
+    # plt.plot(observed_data.iloc[index:]['Date'],SimulatedData[0])
+    # plt.show()
 
     SimulatedData = SimulatedData.flatten()
     IndexOfMaxVal = np.argmax(SimulatedData) + 30
