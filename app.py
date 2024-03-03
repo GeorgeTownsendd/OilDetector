@@ -14,6 +14,8 @@ image_size_height = 255
 sender_email = 'sea.sentry.com@gmail.com'
 sender_password = os.environ.get('PASSWORD') 
 model = load_model('best_model.h5')
+point_off_coast_of_scotland_1 = (57, -1)
+point_off_coast_of_scotland_2 = (56, -2)
 
 TESTING_NO_EMAIL = False
 TESTING_NO_MODEL = True
@@ -77,7 +79,7 @@ def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill
 def homepage_func():
     # Check if there is an oil spill
     is_spill = False
-    for lat, lon in generate_lat_long_points():
+    for lat, lon in generate_lat_long_points(point_off_coast_of_scotland_1, point_off_coast_of_scotland_2):
         if is_spill:
             break
 
