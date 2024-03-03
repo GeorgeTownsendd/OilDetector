@@ -14,7 +14,8 @@ image_size_width = 255
 image_size_height = 255
 sender_email = 'sea.sentry.com@gmail.com'
 sender_password = os.environ.get('PASSWORD') 
-model = load_model('best_model.h5')
+
+
 point_off_coast_of_scotland_1 = (57, -1)
 point_off_coast_of_scotland_2 = (56, -2)
 
@@ -22,6 +23,11 @@ TESTING_NO_EMAIL = False
 TESTING_NO_MODEL = True
 TESTING_NO_PRICE_PREDICTION = True
 
+if not TESTING_NO_MODEL:
+    model = load_model('best_model.h5')
+else:
+    model = ""
+    
 # Create a Flask app
 app = Flask(__name__)
 
