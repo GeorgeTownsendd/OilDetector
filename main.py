@@ -9,16 +9,17 @@ from shapely.geometry import Point, Polygon
 from rasterio.io import MemoryFile
 import json
 import numpy as np
+import rasterio
 
 from auth import *
 
 
 client_id, client_secret = read_client_credentials(CREDENTIALS_PATH)
 AUTH_TOKEN = create_oauth_session(client_id, client_secret).token['access_token']
-ENDPOINT_URL = 'https://creodias.sentinel-hub.com/api/v1/catalog/1.0.0/search'
+SEARCH_ENDPOINT_URL = 'https://creodias.sentinel-hub.com/api/v1/catalog/1.0.0/search'
+ENDPOINT_URL = 'https://creodias.sentinel-hub.com/api/v1/process'
 
-
-def search_imagery(lat, lon, datetime, collections=["sentinel-3-olci"], limit=5):
+def search_imagery(lat, lon, datetime, collections=["sentinel-2-l2a"], limit=5):
     """
     Searches for imagery of a point within +- a week of a given time using Sentinel Hub Catalog API.
 
@@ -75,14 +76,12 @@ def download_image(lat, lon, date_time=datetime.datetime.now(), bands=['B02', 'B
     Returns:
         Response content: Image data or error message.
     """
-    # Format date_time to ISO format
     date_start = (date_time - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
     date_end = date_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     buffer = 0.01
     bbox = [lon - buffer, lat - buffer, lon + buffer, lat + buffer]
 
-    # Setup API request payload
     payload = {
         "input": {
             "bounds": {
@@ -107,8 +106,9 @@ def download_image(lat, lon, date_time=datetime.datetime.now(), bands=['B02', 'B
           return {{
             input: {json.dumps(bands)},
             output: {{
-              bands: {len(bands)},
-              format: "image/png"
+              bands: 6,
+              units: "REFLECTANCE",
+              format: "image/tiff"
             }}
           }};
         }}
@@ -118,14 +118,12 @@ def download_image(lat, lon, date_time=datetime.datetime.now(), bands=['B02', 'B
         """
     }
 
-    # Set headers
     headers = {
         "Authorization": f"Bearer {AUTH_TOKEN}",
         "Content-Type": "application/json"
     }
 
-    # Perform the API request
-    response = requests.post('https://services.sentinel-hub.com/api/v1/process', json=payload, headers=headers)
+    response = requests.post(ENDPOINT_URL, json=payload, headers=headers)
 
     if response.status_code == 200:
         with MemoryFile(response.content) as memfile:
@@ -137,16 +135,37 @@ def download_image(lat, lon, date_time=datetime.datetime.now(), bands=['B02', 'B
             f"Failed to download imagery. Status code: {response.status_code}, Response content: {response.text}")
 
 
+def save_image_from_array(image_array, filename):
+    """
+    Saves a multiband image from a numpy array to a TIFF file using Rasterio.
+
+    Parameters:
+    - image_array: numpy.ndarray, the image data in the format of (bands, rows, columns).
+    - filename: str, the path to save the TIFF file to.
+    """
+
+    bands, height, width = image_array.shape
+    metadata = {
+        'driver': 'GTiff',
+        'dtype': image_array.dtype,
+        'count': bands,
+        'height': height,
+        'width': width,
+    }
+
+    # Write the image data to a TIFF file
+    with rasterio.open(filename, 'w', **metadata) as dst:
+        for i in range(bands):
+            dst.write(image_array[i], i + 1)
+
 
 # download_image(lat, lon, datetime_obj, bands=['B02', 'B03', 'B04'], access_token='your_access_token')
-
 
 def test(
     lat,
     lon,
     start_date='default',
     end_date='default',
-    credentials_path='data/credentials.txt',
     instance_id='7155b573-d6a9-4712-be56-b4b3e34c5706',
     layer_name='NDVI',
     image_format='image/tiff',
@@ -247,7 +266,6 @@ def create_ocean_dataset_from_incidents(n, output_folder, incidents_csv='data/in
     print(f"Completed downloading images and recording points in {csv_file_path}.")
 
 
-
 def get_row_details(row_id, csv_file='data/inputs/filtered_incidents.csv'):
     """Retrieve details for a given row ID from the CSV file."""
     with open(csv_file, 'r') as file:
@@ -330,7 +348,6 @@ def process_incidents_and_download(csv_file, output_folder, max_downloads=100, d
                 print(f"Error processing row ID: {row['id']}: {e}")
 
 
-
 def test():
     csv_file = 'data/inputs/filtered_incidents.csv'
     output_folder = 'downloaded_images'
@@ -362,10 +379,12 @@ def test():
 if __name__ == '__main__':
     #x = search_imagery(0, 0, datetime.datetime.now())
 
-    lat, lon = 56, 3
+    lat, lon = 56, 13
     datetime_obj = datetime.datetime.now() - timedelta(days=14)
 
-    x = download_image(lat, lon, datetime_obj)
+    image_array = download_image(lat, lon, datetime_obj)
+    #plt.imshow(image_array)
+    save_image_from_array(image_array, 'test.tif')
 
     #x = download_image(28.8717, -89.34)
                        #start_date=datetime.datetime(year=2009, month=9, day=28),
