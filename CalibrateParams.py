@@ -1,7 +1,7 @@
 #Levenberg-Marquardt Algorithm to train the parameters of the Heston model
 import numpy as np
 import pandas as pd
-import LeakageToPrice2
+import LeakageToPrice
 from scipy.optimize import least_squares
 
 def calculate_residuals(simulated_data, observed_data):
@@ -16,7 +16,7 @@ def residuals(params, S0, T, r, Days, NPaths, observed_data):
     kappa, theta, v_0, Rho, xi = params
     Days //= 2
 
-    simulated_data = LeakageToPrice2.generate_heston_paths(S0, T, r, kappa, theta, v_0, Rho, xi, Days, NPaths)
+    simulated_data = LeakageToPrice.generate_heston_paths(S0, T, r, kappa, theta, v_0, Rho, xi, Days, NPaths)
     simulated_data = np.array(simulated_data[0]).flatten()
     observed_data = observed_data['Value']
     # Calculate the residuals between the simulated data and the observed data
