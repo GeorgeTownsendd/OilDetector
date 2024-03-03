@@ -74,4 +74,5 @@ def homepage_func():
     return render_template('index.html')
 
 
-send_email()
+if __name__ == '__main__':
+    app.run(debug=True)
