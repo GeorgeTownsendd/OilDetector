@@ -22,6 +22,20 @@
 
         var marker = WE.marker([11.17, -60]).addTo(earth);
         marker.bindPopup("<b>Oil Spill in Tobago's southern coast</b><br>Wednesday 14 February 2024 15:13 GMT<br /><span style='font-size:10px;color:#999'>The spill occurred on the southern coast of Tobago Island and has blackened about 15km of coastline. The cause of the spill is unknown and the cleanup efforts are ongoing. The government of Trinidad and Tobago has vowed to spare no expense to clean up the beaches.</span>", {maxWidth: 150, closeButton: true});
+        
+        var marker2 = WE.marker([11.17, -60]).addTo(earth);
+        marker.bindPopup("<b>Bohai Bay, China</b><br>2019-03-28 16:10 GMT<br /><span style='font-size:10px;color:#999'>Offshore platform explosion, Bohai Bay, China.</span>", {maxWidth: 150, closeButton: true});
+
+        var marker3 = WE.marker([-20.36, 57.72]).addTo(earth);
+        marker2.bindPopup("<b>Mauritius</b><br>2020-04-20 08:24 GMT", {maxWidth: 120, closeButton: false});
+        
+        var marker4 = WE.marker([31.01, 121.61]).addTo(earth);
+        marker.bindPopup("<b>East China Sea</b><br>2018-01-15 08:10 GMT<br /><span style='font-size:10px;color:#999'>Sanchi collision.</span>", {maxWidth: 150, closeButton: true});
+
+        var marker5 = WE.marker([30.058056, 31.228889]).addTo(earth);
+        marker2.bindPopup("<b>Cairo Oil Spill</b><br>Thursday 15 February 2024 08:24 GMT", {maxWidth: 120, closeButton: false});
+
+        var markerCustom = WE.marker([50, -9], '/img/logo-webglearth-white-100.png', 100, 24).addTo(earth);
 
         earth.setView([25, 0], 4);
       }
@@ -55,8 +69,8 @@
         background: url('static/bluestars.jpg') center center / cover no-repeat;
       }
     </style>
-    <title>WebGL Earth API: Markers and pop-up on a globe example with sky background</title>
-    <meta name="description" content="Add markers with a pop-up to an open-source 3D globe and display it on a web or mobile devices.">
+    <title>Sea Sentry</title>
+    <meta name="description" content="REAL-TIME MONITORING OIL SPILL DETECTION AND MONITORING FOR OCEAN CONSERVATION">
   </head>
   <body onload="initialize()">
     <div id="earth_div"></div>
