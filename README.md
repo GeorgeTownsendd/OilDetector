@@ -8,9 +8,13 @@ Sea Sentry is a global monitoring system designed to identify oil spils from sat
 
 Multispectral imagery collects data at specific wavelength ranges across the electromagnetic spectrum, providing detail in various spectral bands. This technology enables the identification and analysis of different materials and conditions on the Earth's surface by their spectral signatures. As an example, these are some of the false color composites we tested, with data from Sentinel 3:
 
-# CNN
 
 ![image](https://github.com/GeorgeTownsendd/OilDetector/assets/7286540/c5f9884d-741b-4902-a22c-c8f550fc1677)
+
+# CNN
+
+![image](https://github.com/GeorgeTownsendd/OilDetector/assets/7286540/d67606dd-328f-4315-b481-aa648c7f81fc)
+
 
 # Interface and Alerting
 
