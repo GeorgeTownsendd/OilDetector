@@ -2,7 +2,7 @@ from sentinelhub import SHConfig
 import rasterio
 import pandas as pd
 from datetime import timedelta
-
+import time
 from auth import *
 
 
@@ -110,7 +110,7 @@ def create_dataset_from_incidents(incident_list_fn, output_dir='data/datasets/ex
         os.makedirs(output_dir)
 
     incidents = pd.read_csv(incident_list_fn)
-    for incident in incidents.iterrows():
+    for incident in list(incidents.iterrows())[:n]:
         i, incident = incident
         lat, lon = int(incident[5]), int(incident[6])
 
@@ -123,11 +123,11 @@ def create_dataset_from_incidents(incident_list_fn, output_dir='data/datasets/ex
         image_array = image_from_request(incident_image_request)
         save_image(image_array, image_filename)
 
-        print(f'Saved imagery for incident ID={incident["id"]} ({i} of {len(incidents)})')
+        print(f'Saved imagery for incident ID={incident["id"]} ({i} of {min(len(incidents), n)})')
+        time.sleep(1)
 
 
 incident_list = 'data/inputs/filtered_incidents.csv'
-
 create_dataset_from_incidents(incident_list, output_dir='data/datasets/v1/', n=500)
 create_dataset_from_incidents(incident_list, output_dir='data/datasets/v0/', n=500, time_offset_days=-100)
 
