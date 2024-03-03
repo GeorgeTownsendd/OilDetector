@@ -13,7 +13,11 @@ image_size_width = 255
 image_size_height = 255
 sender_email = 'sea.sentry.com@gmail.com'
 sender_password = os.environ.get('PASSWORD') 
-# model = load_model('final_model.h5')
+model = load_model('best_model.h5')
+
+TESTING_NO_EMAIL = False
+TESTING_NO_MODEL = True
+TESTING_NO_PRICE_PREDICTION = True
 
 # Create a Flask app
 app = Flask(__name__)
@@ -27,22 +31,23 @@ def generate_lat_long_points(range_upper_left = (90, 180), range_bottom_right = 
     # Generate a list of lat and lon points to search for oil spills.
     (x1, x2) = range_upper_left
     (y1, y2) = range_bottom_right
-    lat_points = [i for i in range(x1, x2, buffer)]
-    lon_points = [i for i in range(y1, y2, buffer)]
-    return [(lat, lon) for lat in lat_points for lon in lon_points]
+    lat_points = [i for i in range(x1 * 20, x2 * 20, int(buffer * 20))]
+    lon_points = [i for i in range(y1 * 20, y2 * 20, int(buffer * 20))]
+    return [(lat / 20, lon  / 20) for lat in lat_points for lon in lon_points]
 
 
 # Run trained model on image and if it is an oil spill, add it to the list of oil spills.
-def predict_oil_spill(image_url, lat, lon, open_date_str):
+def predict_oil_spill(image_url, lat, lon):
     # Run the model on the image and return the result.
     image = cv2.imread(image_url)
     image = cv2.resize(image, (image_size_width, image_size_height))
-    # if model.predict(image) == 1:
-    #     locations_of_oil_spills.append((lat, lon, open_date_str))
-    
+    bool_ret = False
+    if model.predict(image) == 1:
+        bool_ret = True
+    return bool_ret
 
 # Notify investor of oil any oil spills, using email client.
-def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill Alert", message = "There is an oil spill at one of your investments."):
+def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill Alert", message = "There is an oil spill. You should buy now, before the price spikes and sell when the oil price is high."):
     # Send an email to the investor if there are any oil spills.
     # Create a multipart message
     message = MIMEMultipart()
@@ -70,8 +75,32 @@ def send_email(receiver_email = "thomas.c.smail@gmail.com", subject = "Oil Spill
 # Return the map to the user.
 @app.route('/')
 def homepage_func():
-    # Return the html file with the 
+    # Check if there is an oil spill
+    is_spill = False
+    for lat, lon in generate_lat_long_points():
+        if is_spill:
+            break
+
+        # make requests to the sentinel API to get the image
+        if TESTING_NO_MODEL:
+            is_spill = False
+        else:
+            image = "GET_IMAGE_FROM_SENTINEL_API"
+            is_spill = predict_oil_spill(image, lat, lon, "2021-01-01")
+            locations_of_oil_spills.append((lat, lon))
+
+    if is_spill:
+        if TESTING_NO_PRICE_PREDICTION:
+            sell_price = 100
+        else:
+            sell_price = 100 
+            # max(heston_price(true))
+        if TESTING_NO_EMAIL:
+            print(f"There is an oil spill at {lat}, {lon} you should buy now, before the price spikes and sell when the oil price is {sell_price}.")
+        else:
+            send_email(message=f"There is an oil spill at {lat}, {lon} you should buy now, before the price spikes and sell when the oil price is {sell_price}.")
     return render_template('index.html')
+
 
 
 if __name__ == '__main__':
