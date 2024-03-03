@@ -25,6 +25,24 @@
 
         earth.setView([25, 0], 4);
       }
+
+      function addNewMarkers() {
+        var rawFile = new XMLHttpRequest();
+        rawFile.open("GET", 'static/data.json', false);
+        rawFile.onreadystatechange = function () {
+          if(rawFile.readyState === 4) {
+            if(rawFile.status === 200 || rawFile.status == 0) {
+              var allText = rawFile.responseText;
+              alert(allText);
+              for i rawFile.response {
+                var marker = WE.marker([i.lat, i.lon]).addTo(earth);
+                marker.bindPopup("<b> Oil Spill </b><br>03-02-23<br /><span style='font-size:10px;color:#999'>There is a oil spill here</span>", {maxWidth: 150, closeButton: true});
+              }
+            }
+          }
+        }
+        rawFile.send(null);
+      }
     </script>
     <style>
       html, body {

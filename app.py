@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from keras.models import load_model
 import cv2
 import os
+import json
 
 # email
 import smtplib
@@ -24,7 +25,7 @@ TESTING_NO_PRICE_PREDICTION = True
 # Create a Flask app
 app = Flask(__name__)
 
-locations_of_oil_spills = []
+locations_of_oil_spills = [(11, -60)]
 
 
 # Request satellite data from sentinel (we define where we want to look for oil spills).
@@ -90,6 +91,12 @@ def homepage_func():
             image = "GET_IMAGE_FROM_SENTINEL_API"
             is_spill = predict_oil_spill(image, lat, lon, "2021-01-01")
             locations_of_oil_spills.append((lat, lon))
+    json_data = json.dumps(locations_of_oil_spills)
+
+    # Save json data to file
+    with open('static/data.json', 'w') as f:
+        f.write(json_data)
+    
 
     if is_spill:
         if TESTING_NO_PRICE_PREDICTION:
